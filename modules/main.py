@@ -27,6 +27,14 @@ def flash_binary(dev, path, start_block, max_size=0):
         dev.emmc_write(start_block + x, data[x * 0x200:(x + 1) * 0x200])
     print("")
 
+def dump_binary(dev, path, start_block, max_size=0):
+    with open(path, "w+b") as fout:
+        blocks = max_size // 0x200
+        for x in range(blocks):
+            print("[{} / {}]".format(x + 1, blocks), end='\r')
+            fout.write(dev.emmc_read(start_block + x))
+    print("")
+
 def switch_user(dev):
     dev.emmc_switch(0)
     block = dev.emmc_read(0)
@@ -63,7 +71,7 @@ def main():
     # 1.1) Parse gpt
     gpt = parse_gpt(dev)
     log("gpt_parsed = {}".format(gpt))
-    if "lk" not in gpt or "tee1" not in gpt or "boot" not in gpt or "recovery" not in gpt:
+    if "UBOOT" not in gpt or "TEE1" not in gpt or "boot" not in gpt or "recovery" not in gpt:
         raise RuntimeError("bad gpt")
 
     # 2) Sanity check boot0
@@ -87,33 +95,22 @@ def main():
         raise RuntimeError("downgrade failure, giving up")
     log("rpmb downgrade ok")
 
-    # 5) Install lk-payload
-    log("Flash lk-payload")
-    switch_boot0(dev)
-    flash_binary(dev, "../lk-payload/build/payload.bin", 0x200000 // 0x200)
-
     # 6) Downgrade preloader
     log("Flash preloader")
     switch_boot0(dev)
-    flash_binary(dev, "../bin/boot0-short.bin", 0)
+    flash_binary(dev, "../bin/preloader.bin", 0)
 
     # 7) Downgrade tz
     log("Flash tz")
     switch_user(dev)
-    flash_binary(dev, "../bin/tz.bin", gpt["tee1"][0], gpt["tee1"][1] * 0x200)
+    flash_binary(dev, "../bin/tz.bin", gpt["TEE1"][0], gpt["TEE1"][1] * 0x200)
 
     # 8) Downgrade lk
     log("Flash lk")
     switch_user(dev)
-    flash_binary(dev, "../bin/lk.bin", gpt["lk"][0], gpt["lk"][1] * 0x200)
+    flash_binary(dev, "../bin/lk.bin", gpt["UBOOT"][0], gpt["UBOOT"][1] * 0x200)
 
-    # 9) Flash microloader
-    log("Inject microloader")
-    switch_user(dev)
-    flash_binary(dev, "../bin/microloader.bin", gpt["boot"][0], gpt["boot"][1] * 0x200)
-
-    # Reboot (to fastboot)
-    log("Reboot to unlocked fastboot")
+    log("Reboot")
     dev.reboot()
 
 

