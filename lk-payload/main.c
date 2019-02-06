@@ -21,7 +21,8 @@ void _putchar(char character)
     low_uart_put(character);
 }
 
-int (*original_read)(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) = 0x4BD1E839;
+//int (*original_read)(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) = 0x4BD1E839;
+int (*original_read)(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) = (void *)0x81E141F4;
 
 uint64_t g_boot, g_recovery, g_lk;
 
@@ -59,7 +60,7 @@ static void parse_gpt() {
         } else if (memcmp(name, "r\x00\x65\x00\x63\x00o\x00v\x00\x65\x00r\x00y\x00\x00\x00", 18) == 0) {
             printf("found recovery at 0x%08X\n", start);
             g_recovery = start;
-        } else if (memcmp(name, "l\x00k\x00\x00\x00", 6) == 0) {
+        } else if (memcmp(name, "U\x00\x42\x00O\x00O\x00T\x00\x00\x00", 12) == 0) {
             printf("found lk at 0x%08X\n", start);
             g_lk = start;
         }
@@ -70,7 +71,8 @@ int main() {
     int ret = 0;
     printf("This is LK-payload by xyz. Copyright 2019\n");
 
-    uint32_t **argptr = (void*)0x4BD00020;
+    //uint32_t **argptr = (void*)0x4BD00020;
+    uint32_t **argptr = (void*)0x81E00020;
     uint32_t *arg = *argptr;
     arg[0x53] = 4; // force 64-bit linux kernel
 
@@ -91,7 +93,8 @@ int main() {
 
     struct device_t *dev = get_device();
 
-    void *lk_tmp = (void*)0x44000000;
+    //void *lk_tmp = (void*)0x44000000;
+    void *lk_tmp = (void*)0x89B00000;
     #define LK_SIZE (0x800 * 0x200)
     ret = dev->read(dev, g_lk * 0x200 + 0x200, lk_tmp, LK_SIZE, USER_PART);
     printf("read lk: 0x%08X\n", ret);
@@ -107,7 +110,8 @@ int main() {
     asm volatile ("cpsid if");
 
     printf("Copy lk\n");
-    void *lk_dst = (void*)0x4BD00000;
+    //void *lk_dst = (void*)0x4BD00000;
+    void *lk_dst = (void*)0x81E00000;
     memcpy(lk_dst, lk_tmp, LK_SIZE);
 
     uint16_t *patch;
@@ -143,7 +147,7 @@ int main() {
     // hook bootimg read function
     uint32_t *patch32;
     patch32 = (void*)0x4BD5538C;
-    *patch32 = read_func;
+    //*patch32 = read_func;
 
     printf("Clean lk\n");
     cache_clean(lk_dst, LK_SIZE);

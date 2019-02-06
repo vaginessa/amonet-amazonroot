@@ -5,7 +5,7 @@ ENTRY(start)
 
 SECTIONS
 {
-  . = 0x41000000;
+  . = 0x8AB00000;
 
   .text     : { *(.text.start) *(.text   .text.*   .gnu.linkonce.t.*) }
   .rodata   : { *(.rodata .rodata.* .gnu.linkonce.r.*) }

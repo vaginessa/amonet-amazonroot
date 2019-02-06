@@ -5,5 +5,5 @@
 .global start
 .section .text.start
 start:
-    mov sp, #0x42000000
+    ldr sp,=#0x8BB00000
     blx main

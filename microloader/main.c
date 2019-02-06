@@ -30,6 +30,10 @@ int puts(const char *line) {
 
 int main() {
     puts("microloader by xyz. Copyright 2019.");
+    puts("mt8127 port by k4y0z. Copyright 2019.");
+
+    void (*test)(void) = (void*)0x81E004E9;
+    test();
 
     struct device_t *dev = (void*)get_device();
     uint32_t *dst = (void*)PAYLOAD_DST;
@@ -43,7 +47,6 @@ int main() {
     jump();
 
     puts("Something went horribly wrong!");
-
     while (1) {
 
     }
