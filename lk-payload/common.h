@@ -8,8 +8,11 @@ struct device_t {
     size_t (*read)(struct device_t *dev, uint64_t dev_addr, void *dst, uint32_t size, uint32_t part);
 };
 
-struct device_t* (*get_device)() = (void*)0x81E14681;
-void (*cache_clean)(void *addr, size_t sz) = (void*)0x81E1AE60;
+//struct device_t* (*get_device)() = (void*)0x81E14681;
+struct device_t* (*get_device)() = (void*)0x81E354F1;
+//void (*cache_clean)(void *addr, size_t sz) = (void*)0x81E1AE60;
+void (*cache_clean)(void *addr, size_t sz) = (void*)0x81E3BCD0;
+//void (*cache_clean)(void *addr, size_t sz) = (void*)0x81E1AE34;
 
 #define PAYLOAD_DST 0x8AB00000
 #define PAYLOAD_SRC 0x200000

@@ -138,6 +138,7 @@ int main() {
         while (1) {}
     }
 
+#if 0
     //int (*app)() = (void*)0x4BD27109;
     int (*app)() = (void*)0x81E3D8E5; //loading
     //int (*app)() = (void*)0x81E3D4AD;
@@ -275,6 +276,7 @@ int main() {
       app();
     }
 
+#endif
     while (1) {
 
     }
