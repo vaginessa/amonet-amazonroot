@@ -4,7 +4,7 @@ This is an exploit chain for Fire 7 (2015) (5th gen / ford / KFFOWI). It contain
 
 It is also partially applicable to the Fire 7 (2017) (7th gen / austin / KFAUWI), but lacks display support.
 
-For installation instructions, see https://forum.xda-developers.com/hd8-hd10/orig-development/fire-hd-8-2018-downgrade-unlock-root-t3894256
+For installation instructions, see https://forum.xda-developers.com/amazon-fire/development/unlock-fire-t3899860
 
 ## License
 
