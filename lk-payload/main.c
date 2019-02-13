@@ -43,7 +43,6 @@ int read_func(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, in
             memset(second_copy, 0, 0x400);
         }
     } else {
-        printf("read_func original_read\n");
         ret = original_read(dev, block_off, dst, sz, part);
     }
     return ret;
@@ -112,10 +111,12 @@ int main() {
 
     uint8_t bootloader_msg[0x10] = { 0 };
 
-    // Read amonet-flag from MISC partition
-    //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
-    dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
-    //video_printf("%s\n", bootloader_msg);
+    if(g_misc) {
+      // Read amonet-flag from MISC partition
+      //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
+      dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
+      //video_printf("%s\n", bootloader_msg);
+    }
 
 
     //uint8_t tmp[0x10] = { 0 };
@@ -190,7 +191,6 @@ int main() {
     if(!fastboot) {
       // hook bootimg read function
       original_read = (void*)dev->read;
-      original_write = (void*)dev->write;
 
       patch32 = (void*)0x81E6478C;
       *patch32 = (uint32_t)read_func;
@@ -201,6 +201,7 @@ int main() {
 
 #if 0
     // hook write-function
+    original_write = (void*)dev->write;
     patch32 = (void*)&dev->write;
     *patch32 = (uint32_t)write_func;
 #endif

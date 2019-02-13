@@ -43,6 +43,7 @@ int main() {
     jump();
 
     puts("Something went horribly wrong!");
+
     while (1) {
 
     }

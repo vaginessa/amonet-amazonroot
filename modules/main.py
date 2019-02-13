@@ -9,7 +9,6 @@ def switch_boot0(dev):
     dev.emmc_switch(1)
     block = dev.emmc_read(0)
     if block[0:9] != b"EMMC_BOOT":
-        print(block)
         dev.reboot()
         raise RuntimeError("what's wrong with your BOOT0?")
 
@@ -40,7 +39,6 @@ def switch_user(dev):
     dev.emmc_switch(0)
     block = dev.emmc_read(0)
     if block[510:512] != b"\x55\xAA":
-        print(block[510:512])
         dev.reboot()
         raise RuntimeError("what's wrong with your GPT?")
 
@@ -122,6 +120,7 @@ def main():
     switch_user(dev)
     flash_binary(dev, "../bin/microloader.bin", gpt["boot"][0], gpt["boot"][1] * 0x200)
 
+    # Reboot (to fastboot)
     log("Reboot to unlocked fastboot")
     dev.reboot()
 
