@@ -29,13 +29,7 @@ int puts(const char *line) {
 }
 
 int main() {
-    //cache_clean((void*)0x81E6C000, 0x400);
-    //puts("microloader by xyz. Copyright 2019.");
-    //puts("mt8127 port by k4y0z. Copyright 2019.");
-
-    //void (*test)(void) = (void*)0x81E004E9;
-    void (*test)(void) = (void*)0x81E008B1;
-    //test();
+    puts("microloader by xyz. Copyright 2019.");
 
     struct device_t *dev = (void*)get_device();
     uint32_t *dst = (void*)PAYLOAD_DST;
@@ -45,10 +39,10 @@ int main() {
 
     // Jump to the payload
     void (*jump)(void) = (void*)dst;
-    //puts("Jump to the payload");
+    puts("Jump to the payload");
     jump();
 
-    //puts("Something went horribly wrong!");
+    puts("Something went horribly wrong!");
     while (1) {
 
     }
