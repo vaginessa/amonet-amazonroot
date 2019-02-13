@@ -212,6 +212,9 @@ int main() {
 #ifdef RELOAD_LK
     printf("About to jump to LK\n");
 
+    uint32_t **argptr = (void*)0x81E00020;
+    uint32_t *arg = *argptr;
+
     asm volatile (
         "mov r4, %0\n" 
         "mov r3, %1\n"
