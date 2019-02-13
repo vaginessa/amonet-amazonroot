@@ -94,7 +94,6 @@ def aes_write16(dev, addr, data):
     if call_func(dev, 126) != 0: # aes decrypt
         raise RuntimeError("failed to call the function!")
 
-
 def load_payload(dev, path):
     print("")
     print(" * * * Remove the short and press Enter * * * ")
@@ -111,6 +110,10 @@ def load_payload(dev, path):
     dev.run_ext_cmd(0xB1)
 
     log("Disable bootrom range checks")
+    #with open("dump", "wb") as dump:
+    #    for x in range(0, 0x20000, 16):
+    #        dump.write((aes_read16(dev, x)))
+    #print(aes_read16(dev, 0x102870).hex())
     aes_write16(dev, 0x102870, bytes.fromhex("00000000000000000000000080000000"))
 
     with open(path, "rb") as fin:
@@ -135,7 +138,6 @@ def load_payload(dev, path):
     log("Wait for the payload to come online...")
     dev.wait_payload()
     log("all good")
-
 
 if __name__ == "__main__":
     dev = Device(sys.argv[1])

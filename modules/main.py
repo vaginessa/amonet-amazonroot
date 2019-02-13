@@ -9,6 +9,7 @@ def switch_boot0(dev):
     dev.emmc_switch(1)
     block = dev.emmc_read(0)
     if block[0:9] != b"EMMC_BOOT":
+        print(block)
         dev.reboot()
         raise RuntimeError("what's wrong with your BOOT0?")
 
@@ -39,6 +40,7 @@ def switch_user(dev):
     dev.emmc_switch(0)
     block = dev.emmc_read(0)
     if block[510:512] != b"\x55\xAA":
+        print(block[510:512])
         dev.reboot()
         raise RuntimeError("what's wrong with your GPT?")
 
@@ -95,22 +97,32 @@ def main():
         raise RuntimeError("downgrade failure, giving up")
     log("rpmb downgrade ok")
 
+    # 5) Install lk-payload
+    log("Flash lk-payload")
+    switch_boot0(dev)
+    flash_binary(dev, "../lk-payload/build/payload.bin", 0x200000 // 0x200)
+
     # 6) Downgrade preloader
     log("Flash preloader")
     switch_boot0(dev)
-    flash_binary(dev, "../bin/preloader.bin", 0)
+    flash_binary(dev, "../bin/preloader_prod.img", 0)
 
     # 7) Downgrade tz
     log("Flash tz")
     switch_user(dev)
-    flash_binary(dev, "../bin/tz.bin", gpt["TEE1"][0], gpt["TEE1"][1] * 0x200)
+    flash_binary(dev, "../bin/tz.img", gpt["TEE1"][0], gpt["TEE1"][1] * 0x200)
 
     # 8) Downgrade lk
     log("Flash lk")
     switch_user(dev)
     flash_binary(dev, "../bin/lk.bin", gpt["UBOOT"][0], gpt["UBOOT"][1] * 0x200)
 
-    log("Reboot")
+    # 9) Flash microloader
+    log("Inject microloader")
+    switch_user(dev)
+    flash_binary(dev, "../bin/microloader.bin", gpt["boot"][0], gpt["boot"][1] * 0x200)
+
+    log("Reboot to unlocked fastboot")
     dev.reboot()
 
 
