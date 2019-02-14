@@ -5,5 +5,5 @@
 .global start
 .section .text.start
 start:
-    ldr sp,=#0x8BB00000
+    ldr sp,=#0x81000000
     blx main
