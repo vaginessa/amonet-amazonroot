@@ -23,16 +23,47 @@ void _putchar(char character)
     low_uart_put(character);
 }
 
-int (*original_read)(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, uint32_t part) = (void *)0x81E35065;
+int (*original_read)(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, uint32_t part) = (void *)0x81E33E69;
 int (*original_write)(struct device_t *dev, void *src, uint64_t block_off, size_t sz, uint32_t part) = (void *)0x81E351E5;
 
 uint64_t g_boot, g_recovery, g_lk, g_misc;
+
+void hex_dump(const void* data, size_t size) {
+    char ascii[17];
+    size_t i, j;
+    ascii[16] = '\0';
+    for (i = 0; i < size; ++i) {
+        printf("%02X ", ((unsigned char*)data)[i]);
+        if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
+            ascii[i % 16] = ((unsigned char*)data)[i];
+        } else {
+            ascii[i % 16] = '.';
+        }
+        if ((i+1) % 8 == 0 || i+1 == size) {
+            printf(" ");
+            if ((i+1) % 16 == 0) {
+                printf("\n");
+                // printf("|  %s \n", ascii);
+            } else if (i+1 == size) {
+                ascii[(i+1) % 16] = '\0';
+                if ((i+1) % 16 <= 8) {
+                    printf(" ");
+                }
+                for (j = (i+1) % 16; j < 16; ++j) {
+                    printf("   ");
+                }
+                // printf("|  %s \n", ascii);
+                printf("\n");
+            }
+        }
+    }
+}
 
 int read_func(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) {
     printf("read_func hook\n");
     int ret = 0;
     if (block_off == g_boot * 0x200 || block_off == g_recovery * 0x200) {
-        //hex_dump((void *)0x81E6C000, 0x100);
+        //hex_dump((void *)0x81E68000, 0x100);
         printf("demangle boot image - from 0x%08X\n", __builtin_return_address(0));
         if (sz < 0x400) {
             ret = original_read(dev, block_off + 0x400, dst, sz, part);
@@ -95,11 +126,15 @@ int main() {
         fastboot = 1;
     }
 
-    int (*app)() = (void*)0x81E3DD25;
+    int (*app)() = (void*)0x81e3cb31;
 
+    /*
+     * 71 12 E0 81 39 14 E0 81  49 10 E0 81 C1 12 E0 81  
+     * 35 14 E0 81 00 44 E6 81  65 11 E0 81 E5 11 E0 81
+    */
     unsigned char overwritten[] = {
         0x71, 0x12, 0xE0, 0x81, 0x39, 0x14, 0xE0, 0x81, 0x49, 0x10, 0xE0, 0x81, 0xC1, 0x12, 0xE0, 0x81,
-        0x35, 0x14, 0xE0, 0x81, 0x00, 0x84, 0xE6, 0x81, 0x65, 0x11, 0xE0, 0x81, 0xE5, 0x11, 0xE0, 0x81,
+        0x35, 0x14, 0xE0, 0x81, 0x00, 0x44, 0xE6, 0x81, 0x65, 0x11, 0xE0, 0x81, 0xE5, 0x11, 0xE0, 0x81,
     };
 
     void *lk_dst = (void*)0x81E00000;
@@ -107,7 +142,7 @@ int main() {
 
     struct device_t *dev = get_device();
 
-    memcpy((void*)0x81E6C000, overwritten, sizeof(overwritten));
+    memcpy((void*)0x81E68000, overwritten, sizeof(overwritten));
 
     uint8_t bootloader_msg[0x10] = { 0 };
 
@@ -121,7 +156,7 @@ int main() {
 
     //uint8_t tmp[0x10] = { 0 };
     //dev->read(dev, g_boot * 0x200 + 0x400, tmp, 0x10, USER_PART);
-    uint8_t *tmp = (void*)0x81E6C3B0;
+    uint8_t *tmp = (void*)0x81E683B0;
 
     // microloader
     if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
@@ -150,23 +185,23 @@ int main() {
     if (fastboot) {
         printf("well since you're asking so nicely...\n");
 
-        patch = (void*)0x81E3DD54;
+        patch = (void*)0x81E3CB60;
         *patch = 0xE003;
 
-        video_printf("=> HACKED FASTBOOT mode: (%d) - xyz, k4y0z\n", *g_boot_mode);
+        video_printf("=> HACKED FASTBOOT mode: (%d) - xyz, k4y0z, NW\n", *g_boot_mode);
     }
     else if(*g_boot_mode == 2) {
         video_printf("=> RECOVERY mode...");
     }
     
     // device is unlocked
-    patch = (void*)0x81E20B40;
+    patch = (void*)0x81e20a1c;
     *patch++ = 0x2001; // movs r0, #1
     *patch = 0x4770;   // bx lr
 
     // This enables adb-root-shell
     // amzn_verify_limited_unlock (to set androidboot.unlocked_kernel=true)
-    patch = (void*)0x81E20D60;
+    patch = (void*)0x81e20c3c;
     *patch++ = 0x2000; // movs r0, #0
     *patch = 0x4770;   // bx lr
 
@@ -178,21 +213,20 @@ int main() {
     }
 #endif
 
-    //ignore failed authentication (but still verify)
-    patch = (void*)0x81E1D419;
-    *patch = 0x2001; // movs r0, #0
 
     // Force uart enable
-    char* disable_uart = (char*)0x81E58645;
+    char* disable_uart = (char*)0x81e55f28;
     strcpy(disable_uart, "printk.disable_uart=0");
+    char* disable_uart2 = (char*)0x81e55e10;
+    strcpy(disable_uart2, " printk.disable_uart=0");
 
     uint32_t *patch32;
 
-    if(!fastboot) {
-      // hook bootimg read function
+    // hook bootimg read function
+    if(!fastboot){
       original_read = (void*)dev->read;
 
-      patch32 = (void*)0x81E6478C;
+      patch32 = (void*)0x81e6200c;
       *patch32 = (uint32_t)read_func;
 
       patch32 = (void*)&dev->read;
