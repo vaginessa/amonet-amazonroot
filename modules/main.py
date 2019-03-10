@@ -37,7 +37,7 @@ def dump_binary(dev, path, start_block, max_size=0):
 
 def switch_user(dev):
     dev.emmc_switch(0)
-    # flash_binary(dev, "gpt.bin", 0x0, 0x800*0x200)
+    # flash_binary(dev, "../bin/gpt.bin", 0x0, 0x800*0x200)
     block = dev.emmc_read(0)
     if block[510:512] != b"\x55\xAA":
         dev.reboot()
@@ -100,7 +100,7 @@ def main():
     # 5) Install lk-payload
     log("Flash lk-payload")
     switch_boot0(dev)
-    flash_binary(dev, "../lk-payload/build/payload.bin", 0x200000 // 0x200)
+    flash_binary(dev, "../lk-payload/build/payload.bin", 0x80000 // 0x200)
 
     # 6) Downgrade preloader
     #log("Flash preloader")
@@ -120,7 +120,7 @@ def main():
     # 9) Flash microloader
     log("Inject microloader")
     switch_user(dev)
-    flash_binary(dev, "../microloader/microloader.bin", gpt["boot"][0], gpt["boot"][1] * 0x200)
+    flash_binary(dev, "../bin/microloader.bin", gpt["boot"][0], gpt["boot"][1] * 0x200)
 
     # Reboot (to fastboot)
     log("Reboot to unlocked fastboot")
