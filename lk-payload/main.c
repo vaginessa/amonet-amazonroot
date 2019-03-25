@@ -115,7 +115,20 @@ int main() {
     //dev->read(dev, g_boot * 0x200 + 0x400, tmp, 0x10, USER_PART);
     uint8_t *tmp = (void*)0x81E6C3B0;
 
-    if(g_misc) {
+    // microloader
+    if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
+      fastboot = 1;
+    }
+    // factory and factory advanced boot
+    else if(*g_boot_mode == 4){
+      fastboot = 1;
+    }
+    // Use advanced factory boot to boot into recovery (tank has no buttons)
+    else if(*g_boot_mode == 6){
+      *g_boot_mode = 2;
+    }
+
+    else if(g_misc) {
       // Read amonet-flag from MISC partition
       //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
       dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
@@ -142,18 +155,6 @@ int main() {
       }
     }
 
-    // microloader
-    else if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
-      fastboot = 1;
-    }
-    // factory and factory advanced boot
-    else if(*g_boot_mode == 4){
-      fastboot = 1;
-    }
-    // Use advanced factory boot to boot into recovery (tank has no buttons)
-    else if(*g_boot_mode == 6){
-      *g_boot_mode = 2;
-    }
 
 #ifdef RELOAD_LK
       printf("Disable interrupts\n");
