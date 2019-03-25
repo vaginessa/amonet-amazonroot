@@ -146,32 +146,48 @@ int main() {
 
     uint8_t bootloader_msg[0x10] = { 0 };
 
-    if(g_misc) {
-      // Read amonet-flag from MISC partition
-      //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
-      dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
-      //video_printf("%s\n", bootloader_msg);
-    }
-
-
     //uint8_t tmp[0x10] = { 0 };
     //dev->read(dev, g_boot * 0x200 + 0x400, tmp, 0x10, USER_PART);
     uint8_t *tmp = (void*)0x81E683B0;
 
-    // microloader
-    if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
-      fastboot = 1;
+    if(g_misc) {
+      // Read amonet-flag from MISC partition
+      //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
+      dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
+      printf("bootloader_msg: %s\n", bootloader_msg);
+
+      // temp flag on MISC
+      if(strncmp(bootloader_msg, "boot-amonet", 11) == 0) {
+        fastboot = 1;
+        // reset flag
+        memset(bootloader_msg, 0, 0x10);
+        dev->write(dev, bootloader_msg, g_misc * 0x200, 0x10, USER_PART);
+      }
+
+      // perm flag on MISC
+      else if(strncmp(bootloader_msg, "FASTBOOT_PLEASE", 15) == 0) {
+        // only reset flag in recovery-boot
+        if(*g_boot_mode == 2) {
+          memset(bootloader_msg, 0, 0x10);
+          dev->write(dev, bootloader_msg, g_misc * 0x200, 0x10, USER_PART);
+        }
+        else {
+          fastboot = 1;
+        }
+      }
     }
-    // flag on MISC
-    else if(strncmp(bootloader_msg, "boot-amonet", 11) == 0) {
+
+    // microloader
+    else if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
       fastboot = 1;
-      // reset flag
-      memset(bootloader_msg, 0, 11);
-      dev->write(dev, bootloader_msg, g_misc * 0x200, 11, USER_PART);
     }
     // factory and factory advanced boot
-    else if(*g_boot_mode == 4 || *g_boot_mode == 6){
-        fastboot = 1;
+    else if(*g_boot_mode == 4){
+      fastboot = 1;
+    }
+    // Use advanced factory boot to boot into recovery (tank has no buttons)
+    else if(*g_boot_mode == 6){
+      *g_boot_mode = 2;
     }
 
 #ifdef RELOAD_LK
