@@ -28,37 +28,6 @@ int (*original_write)(struct device_t *dev, void *src, uint64_t block_off, size_
 
 uint64_t g_boot, g_recovery, g_lk, g_misc;
 
-void hex_dump(const void* data, size_t size) {
-    char ascii[17];
-    size_t i, j;
-    ascii[16] = '\0';
-    for (i = 0; i < size; ++i) {
-        printf("%02X ", ((unsigned char*)data)[i]);
-        if (((unsigned char*)data)[i] >= ' ' && ((unsigned char*)data)[i] <= '~') {
-            ascii[i % 16] = ((unsigned char*)data)[i];
-        } else {
-            ascii[i % 16] = '.';
-        }
-        if ((i+1) % 8 == 0 || i+1 == size) {
-            printf(" ");
-            if ((i+1) % 16 == 0) {
-                printf("\n");
-                // printf("|  %s \n", ascii);
-            } else if (i+1 == size) {
-                ascii[(i+1) % 16] = '\0';
-                if ((i+1) % 16 <= 8) {
-                    printf(" ");
-                }
-                for (j = (i+1) % 16; j < 16; ++j) {
-                    printf("   ");
-                }
-                // printf("|  %s \n", ascii);
-                printf("\n");
-            }
-        }
-    }
-}
-
 int read_func(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) {
     printf("read_func hook\n");
     int ret = 0;
@@ -150,7 +119,20 @@ int main() {
     //dev->read(dev, g_boot * 0x200 + 0x400, tmp, 0x10, USER_PART);
     uint8_t *tmp = (void*)0x81E683B0;
 
-    if(g_misc) {
+    // microloader
+    if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
+      fastboot = 1;
+    }
+    // factory and factory advanced boot
+    else if(*g_boot_mode == 4){
+      fastboot = 1;
+    }
+    // Use advanced factory boot to boot into recovery (tank has no buttons)
+    else if(*g_boot_mode == 6){
+      *g_boot_mode = 2;
+    }
+
+    else if(g_misc) {
       // Read amonet-flag from MISC partition
       //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
       dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
@@ -177,18 +159,6 @@ int main() {
       }
     }
 
-    // microloader
-    else if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
-      fastboot = 1;
-    }
-    // factory and factory advanced boot
-    else if(*g_boot_mode == 4){
-      fastboot = 1;
-    }
-    // Use advanced factory boot to boot into recovery (tank has no buttons)
-    else if(*g_boot_mode == 6){
-      *g_boot_mode = 2;
-    }
 
 #ifdef RELOAD_LK
       printf("Disable interrupts\n");
