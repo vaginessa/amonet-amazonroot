@@ -35,6 +35,15 @@ grep_prop() {
   sed -n "$REGEX" $FILES 2>/dev/null | head -n 1
 }
 
+check_device() {
+  product=$(getprop ro.product.name)
+
+  if [ "$product" != "${1}" ] ; then
+    echo "This is only for the \"${1}\"${2}, your device is a \"${product}\""
+    exit 1
+  fi
+}
+
 ##########################################################################################
 # Flashable update-binary preparation
 ##########################################################################################
@@ -61,12 +70,7 @@ if [ "$?" -eq "0" ]; then
   done
 fi
 
-PRODUCT=$(getprop ro.build.product)
-if [ "$PRODUCT" != "tank" ]; then
-  ui_print " "
-  ui_print "This is for the tank (Fire TV Stick 2), your device is a ${PRODUCT}"
-  exit 1
-fi
+check_product "tank" " - Amazon Fire TV Stick 2 - "
 
 TMPDIR=/dev/tmp
 INSTALLER=$TMPDIR/install
@@ -84,7 +88,7 @@ unzip -o "$ZIP" 'amonet/bin/twrp.img' 'amonet/lk-payload/build/payload.bin' -d $
 ui_print " "
 ui_print "amonet updater"
 ui_print "- updating TWRP"
-dd if=${INSTALLER}/amonet/bin/twrp.img of=/dev/block/platform/mtk-msdc.0/by-name/recovery_x
+dd if=${INSTALLER}/amonet/bin/twrp.img of=/dev/block/platform/mtk-msdc.0/by-name/recovery
 ui_print "- updating payload"
 echo 0 > /sys/block/mmcblk0boot0/force_ro
 dd if=/${INSTALLER}/amonet/lk-payload/bin/payload.bin of=/dev/block/mmcblk0boot0 bs=512 seek=${PAYLOAD_BLOCK}
