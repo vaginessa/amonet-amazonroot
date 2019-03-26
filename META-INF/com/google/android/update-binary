@@ -2,7 +2,7 @@
 # amonet updater
 # Copyright (C) 2019 k4y0z @ xda-developers
 
-PAYLOAD_BLOCK=1024
+PAYLOAD_BLOCK=4096
 
 # detect whether in boot mode
 getprop | grep zygote | grep -q running && bootMode=true || bootMode=false
@@ -70,7 +70,7 @@ if [ "$?" -eq "0" ]; then
   done
 fi
 
-check_product "tank" " - Amazon Fire TV Stick 2 - "
+check_product "ford" " - Amazon Fire 7 (2015) - "
 
 TMPDIR=/dev/tmp
 INSTALLER=$TMPDIR/install
