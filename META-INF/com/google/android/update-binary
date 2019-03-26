@@ -70,7 +70,7 @@ if [ "$?" -eq "0" ]; then
   done
 fi
 
-check_product "ford" " - Amazon Fire 7 (2015) - "
+check_product "austin" " - Amazon Fire 7 (2017) - "
 
 TMPDIR=/dev/tmp
 INSTALLER=$TMPDIR/install
