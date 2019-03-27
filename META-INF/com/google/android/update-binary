@@ -104,7 +104,7 @@ dd if=${INSTALLER}/amonet/bin/twrp.img of=/dev/block/platform/mtk-msdc.0/by-name
 
 ui_print "- updating payload"
 echo 0 > /sys/block/mmcblk0boot0/force_ro
-dd if=/${INSTALLER}/amonet/lk-payload/bin/payload.bin of=/dev/block/mmcblk0boot0 bs=512 seek=${PAYLOAD_BLOCK}
+dd if=/${INSTALLER}/amonet/lk-payload/build/payload.bin of=/dev/block/mmcblk0boot0 bs=512 seek=${PAYLOAD_BLOCK}
 echo 1 > /sys/block/mmcblk0boot0/force_ro
 ui_print "- Update complete"
 ui_print " "
