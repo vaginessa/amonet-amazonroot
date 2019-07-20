@@ -134,6 +134,10 @@ int main() {
     *patch++ = 0x2001; // movs r0, #1
     *patch = 0x4770;   // bx lr
 
+    // Force uart enable
+    char* disable_uart = (char*)0x4BD4BC37;
+    strcpy(disable_uart, "printk.disable_uart=0");
+
     // hook bootimg read function
     uint32_t *patch32;
     patch32 = (void*)&dev->read;
