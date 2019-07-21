@@ -23,7 +23,7 @@ void _putchar(char character)
 
 int (*original_read)(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) = (void*)0x4BD1E839;
 
-uint64_t g_boot, g_recovery, g_lk;
+uint64_t g_boot, g_recovery, g_lk, g_misc;
 
 int read_func(struct device_t *dev, uint64_t block_off, void *dst, size_t sz, int part) {
     printf("read_func hook\n");
@@ -64,6 +64,9 @@ static void parse_gpt() {
         } else if (memcmp(name, "l\x00k\x00\x00\x00", 6) == 0) {
             printf("found lk at 0x%08X\n", start);
             g_lk = start;
+        } else if (memcmp(name, "M\x00I\x00S\x00\x43\x00\x00\x00", 10) == 0) {
+            printf("found misc at 0x%08X\n", start);
+            g_misc = start;
         }
     }
 }
@@ -88,7 +91,8 @@ int main() {
 
     if (!g_boot || !g_recovery || !g_lk) {
         printf("failed to find boot, recovery or lk\n");
-        while (1) {}
+        printf("falling back to fastboot mode\n");
+        fastboot = 1;
     }
 
     int (*app)() = (void*)0x4BD27109;
@@ -102,26 +106,73 @@ int main() {
     };
     memcpy((void*)0x4BD5C000, overwritten, sizeof(overwritten));
 
+    uint8_t bootloader_msg[0x10] = { 0 };
     void *lk_dst = (void*)0x4BD00000;
     #define LK_SIZE (0x800 * 0x200)
 
     struct device_t *dev = get_device();
 
-    uint8_t tmp[0x10] = { 0 };
-    dev->read(dev, g_boot * 0x200 + 0x400, tmp, 0x10, USER_PART);
-    if (strcmp(tmp, "FASTBOOT_PLEASE") == 0) {
-        printf("well since you're asking so nicely...\n");
+    //uint8_t tmp[0x10] = { 0 };
+    //dev->read(dev, g_boot * 0x200 + 0x400, tmp, 0x10, USER_PART);
+    uint8_t *tmp = (void*)0x4BD5C3B0;
+
+    // microloader
+    if (strncmp(tmp, "FASTBOOT_PLEASE", 15) == 0 ) {
+      fastboot = 1;
+    }
+
+    // factory and factory advanced boot
+    else if(*g_boot_mode == 4 ) {
+      fastboot = 1;
+    }
+
+    // use advanced factory mode to boot recovery
+    else if(*g_boot_mode == 6) {
+      *g_boot_mode = 2;
+    }
+
+    else if(g_misc) {
+      // Read amonet-flag from MISC partition
+      dev->read(dev, g_misc * 0x200, bootloader_msg, 0x10, USER_PART);
+      //dev->read(dev, g_misc * 0x200 + 0x4000, bootloader_msg, 0x10, USER_PART);
+      printf("bootloader_msg: %s\n", bootloader_msg);
+
+      // temp flag on MISC
+      if(strncmp(bootloader_msg, "boot-amonet", 11) == 0) {
         fastboot = 1;
+        // reset flag
+        memset(bootloader_msg, 0, 0x10);
+        dev->write(dev, bootloader_msg, g_misc * 0x200, 0x10, USER_PART);
+      }
+
+      // perm flag on MISC
+      else if(strncmp(bootloader_msg, "FASTBOOT_PLEASE", 15) == 0) {
+        // only reset flag in recovery-boot
+        if(*g_boot_mode == 2) {
+          memset(bootloader_msg, 0, 0x10);
+          dev->write(dev, bootloader_msg, g_misc * 0x200, 0x10, USER_PART);
+        }
+        else {
+          fastboot = 1;
+        }
+      }
     }
 
     uint16_t *patch;
 
     // force fastboot mode
     if (fastboot) {
+        printf("well since you're asking so nicely...\n");
+
         patch = (void*)0x4BD2717C;
         *patch = 0;
         patch = (void*)0x4BD27182;
         *patch = 0;
+
+        video_printf("=> HACKED FASTBOOT mode: (%d) - xyz, k4y0z\n", *g_boot_mode);
+    }
+    else if(*g_boot_mode == 2) {
+        video_printf("=> RECOVERY mode...");
     }
 
     // enable all commands
