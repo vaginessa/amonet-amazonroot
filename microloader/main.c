@@ -33,7 +33,7 @@ int main() {
 
     struct device_t *dev = (void*)get_device();
     uint32_t *dst = (void*)PAYLOAD_DST;
-    size_t ret = dev->read(dev, PAYLOAD_SRC, dst, PAYLOAD_SIZE, BOOT0_PART); // boot0 partition, read 2 megabytes
+    size_t ret = dev->read(dev, PAYLOAD_SRC, dst, PAYLOAD_SIZE, BOOT0_PART); // boot0 partition, read 512K
 
     cache_clean(dst, PAYLOAD_SIZE);
 

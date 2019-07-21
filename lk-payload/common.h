@@ -16,8 +16,8 @@ size_t (*video_printf)(const char *format, ...) = (void *)0x4BD30A9B;
 uint32_t* g_boot_mode = (uint32_t*) 0x4BD5D364;
 
 #define PAYLOAD_DST 0x41000000
-#define PAYLOAD_SRC 0x200000
-#define PAYLOAD_SIZE 0x200000
+#define PAYLOAD_SRC 0x80000
+#define PAYLOAD_SIZE 0x80000
 
 #define BOOT0_PART 1
 #define USER_PART 8
